@@ -1,0 +1,20 @@
+---
+title: "空间转录组技术分享：Slide-seq"
+author: "天天生信"
+format: docx
+editor: source
+bibliography: "ref.bib"
+csl: "/home/yincy/git/github/styles/advanced-science.csl"
+---
+
+今天我们来学习另外一种空间转录组技术：Slide-Seq。
+
+Slide-Seq技术最早于2019年发表于Science杂志[@Rodriques2019]，2020年的时候又在Nature Biotechnology上发表了其改进版本Slide-SeqV2[@Stickels2020]。
+
+
+
+
+
+
+
+
