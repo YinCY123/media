@@ -1,0 +1,114 @@
+---
+title: "绘制超级漂亮的单细胞marker基因气泡图"
+format: docx
+---
+
+今天小编为大家介绍一款绘制单细胞marker基因气泡图的工具`scDotPlot`。在绘制单细胞marker基因气泡图时相信大家主要用的就是两个函数。如果是使用Seurat的同学，估计用的是`DotPlot`这个`Seurat`包自带的函数，如果使用的是`SingleCellExperiment`框架分析单细胞分析的同学估计使用的是`scater`包提供的`plotDots`函数。
+
+但是这两个函数有几个不足之处:  
+
+1. 不能对行或者列进行聚类。  
+2. 不能对行和列进行注释。  
+3. 如果想使用基因表达的z-score值绘制气泡图需要提前对数据进行处理。  
+4. 不能设置一个阈值，使低于这个阈值的基因表达水平设置为零。  
+
+而`scDotPlot`函数就可以完美解决上述问题。下面就让我们一起来学习如何使用吧！  
+
+# 加载需要的R包
+```{r}
+#| eval: true
+library(magrittr) # 使用该包提供的管道符
+library(scDotPlot)
+library(ggsci)
+library(scRNAseq)
+library(scuttle)
+library(scran)
+library(batchelor)
+library(purrr)
+library(AnnotationDbi)
+```
+
+# 加载需要的数据
+今天我们使用`SingleCellExperiment`框架为大家展示如何使用`scDotPlot`函数绘制单细胞基因表达气泡图。
+
+```{r}
+#| eval: true
+sce <- ZeiselBrainData()
+
+# 查看样本信息
+sce %>% colData %>% head
+
+# 筛选掉没需注释信息的细胞
+sce <- sce[, sce$level2class != "(none)"]
+```
+
+
+# 向SingleCellExperiment中添加marker信息
+```{r}
+#| eval: false
+# 对sce进行处理
+set.seed(101)
+qc <- quickCluster(sce)
+sce <- computePooledFactors(sce, clusters = qc)
+sce <- logNormCounts(sce, size.factors = sizeFactors(sce))
+
+# 鉴定每种细胞的marker基因
+markers <- findMarkers(x = sce, 
+    group = sce$level1class, 
+    test.type = "wilcox", 
+    pval.type = "all", 
+    min.prop = 0.25, 
+    direction = "up", 
+    lfc = 0.5)
+
+# 把marker信息添加到rowData数据框里面 
+# 这里面添加的信息就是每行的基因是属于哪个细胞的marker信息 
+cell_markers <- lapply(markers, function(x){
+    x %>% rownames %>% head(5)
+}) %>% unlist2
+
+rowData(sce)$marker <- cell_markers[match(rownames(sce), cell_markers)] %>% names
+rowData(sce)$marker %>% table
+
+# 查看添加的marker信息
+sce %>% rowData %>% .$marker %>% table
+```
+
+# 使用标准化后的logcounts数据绘制marker基因气泡图
+```{r}
+#| eval: false
+scDotPlot(object = sce,
+    features = unique(cell_markers), # marker基因
+    group = "level2class", # 细胞统计的单位
+    groupAnno = "level1class",  # 列注释信息，colData(sce)中的某一列
+    featureAnno = "marker", # 行注释信息，rowData(sce)中的某一列
+    clusterRows = TRUE, # 对行进行聚类
+    clusterCOlumns = TRUE, # 对列进行聚类， 
+    AverageThreshold = 0.1, # 在某种细胞中低于这个阈值认为这个基因在这种细胞中不表达
+    NumDetectedThreshold = 0.1, # 在某种细胞中低于这个检查率认为在这个细胞中不表达
+    groupLegends = TRUE, # 是否显示列注释的图例
+    featureLegends = TRUE #是否显示行注释的图例
+ )
+```
+
+# 使用z-score绘制气泡图
+```{r}
+#| eval: false
+scDotPlot(object = sce, 
+    features = unique(cell_markers), 
+    group = "level2class", 
+    groupAnno = "level1class", 
+    featureAnno = "marker", 
+    clusterRows = TRUE, 
+    clusterColumns = TRUE, 
+    # AverageThreshold = 0.01, 
+    NumDetectedThreshold = 0.05,
+    groupLegends = TRUE, 
+    featureLegends = TRUE, 
+    scale = TRUE # 使用z-score绘制气泡图
+)
+```
+
+好了今天小编就为大家介绍到这里啦，有什么问题大家可以在下面留言交流。本公众号由上海萤锐科技有限公司运营，上海萤锐科技主要专注与单细胞测序、空间转录组、空间代谢组、空间蛋白质组以及宏基因组方向个性化分析，欢迎大家交流咨询。后续我们还会更新更多空间转录组、空间蛋白质组、空间代谢组以及单细胞方面的内容，欢迎关注交流。
+
+![](../qrcode_for_gh_67960e695c66_258.jpg){width=30%}

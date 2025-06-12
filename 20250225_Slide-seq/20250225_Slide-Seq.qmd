@@ -9,12 +9,30 @@ csl: "/home/yincy/git/github/styles/advanced-science.csl"
 
 今天我们来学习另外一种空间转录组技术：Slide-Seq。
 
-Slide-Seq技术最早于2019年发表于Science杂志[@Rodriques2019]，2020年的时候又在Nature Biotechnology上发表了其改进版本Slide-SeqV2[@Stickels2020]。
+Slide-Seq技术最早于2019年发表于Science杂志[@Rodriques2019]，2020年的时候又在Nature Biotechnology上发表了其改进版本Slide-SeqV2[@Stickels2020]。改进后Slide-Seqv2 mRNA的捕获率提高了50%，接近于基于Droplet技术的单细胞RNAseq。
 
 
+Slide-Seq实验步骤如下：  
+
+1. 将合成的bead铺到带有橡胶的玻璃板上，并且使其形成一个单层的平面。由于bead的直径为10um，所以理论上Slide-seq的分辨率能够达到10um级别，这个分辨率远远大于10X Visum以及华大的Stereo-seq。  
+
+2. 把切好的组织切片(10um厚)放到上述玻璃板上，并轻轻按压使bead紧密贴合到组织切片上，有利于后续的RNA捕获。  
+
+3. 释放组织RNA并被bead上带的polyT捕获。  
+
+4. 反转录，并构建测序文库。  
 
 
+其中有一个关键的步骤，就是怎么确定bead在玻片上的二维空间位置及其所携带的barcode序列。  
+
+Slide-Seq使用SOLiD测序技术(Sequencing by Oligonucleotide Ligation and Detection)确定（对SOLiD感兴趣的小伙伴可以到油管看一下这个视频，https://www.youtube.com/watch?v=QhjUS3YHpzw&t=570s）。但是Slide-SeqV2确定barcode的技术稍微与Slide-Seq有些不同。主要区别是SOLiD是bibase ligation，而Slide-seqV2使用的是monobase ligation。在连接测序的时候使用高清相机捕获不同位置的荧光来确定每个bead在二维坐标中的位置以及barcode序列。后面建库测序的时候barcode序列也可以被测到，通过两者的信息就可以确定每个UMI来源于空间的那个位置。
+
+这一步是Slide-seq最关键的步骤，不知道我有没有讲清楚，欢迎大家关注公众号留言讨论。本公众号后续还会更新更多空间转录组、空间蛋白质组、空间代谢组以及单细胞方面的内容。
+
+![](../qrcode_for_gh_67960e695c66_258.jpg){width=30%}
 
 
+# 参考文献
+:::{#refs}
 
-
+:::

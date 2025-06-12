@@ -1,0 +1,230 @@
+---
+title: "20250412"
+author: "上海萤锐科技"
+format: html
+editor: source
+bibliography: "ref.bib"
+csl: "/home/yincy/git/github/styles/advanced-science.csl"
+toc: true
+toc-depth: 3
+toc-title: 目录
+number-sections: true
+---
+
+# 简介
+
+临床研究中如果课题中使用的样本量比较大多，经常需要在文章中使用一个表格展示样本的临床信息。手动统计这个表格是非常耗时且容易出错的事。今天小编就为大家介绍一款工具，其可以用来统计和绘制临床信息的表格，它就是今天的主角compareGroups(v4.9.1)[@Isaac2014]R包。
+
+今天我们就使用TCGA-LIHC数据中的临床信息为大家展示如何使用`compareGroups` 统计并绘制临床信息表。
+
+# 加载需要的包
+```{r}
+#| message: false
+#| warning: false
+#| echo: true
+
+library(magrittr) # 使用其提供的管道操作符
+library(SummarizedExperiment)
+library(compareGroups)
+```
+
+
+# 读取数据
+读取已经下载好的TCGA-LIHC数据，该数据的保存格式是`RangedSummarizedExperiment`，我们可以使用`colData`函数从中提取样本的临床信息。
+```{r}
+lihc <- readRDS("../../../disk14/data/dataset/TCGA/SummarizedExperiment/TCGA-LIHC.rds")
+sample_info <- lihc %>% colData %>% as.data.frame()
+
+# 查看未经整理的临床数据
+sample_info[1:5, 1:5]
+```
+
+## 整理临床数据
+```{r}
+sample_info <- sample_info %>% 
+  dplyr::filter(sample_type_id == "01") %>% 
+  dplyr::select(sample_type, 
+                days_to_collection, 
+                prior_malignancy, 
+                prior_treatment, 
+                ajcc_pathologic_stage, 
+                ajcc_pathologic_t,
+                ajcc_pathologic_n,
+                ajcc_pathologic_m,
+                days_to_last_follow_up, 
+                age = age_at_index, 
+                race, 
+                gender,
+                vital_status)
+
+sample_info <- sample_info %>% 
+  dplyr::mutate(
+    ajcc_pathologic_stage = sapply(ajcc_pathologic_stage, function(x){
+      switch(as.character(x), 
+             "Stage I" = "I&II", 
+             "Stage II" = "I&II", 
+             "Stage III" = "III&IV", 
+             "Stage IIIA" = "III&IV", 
+             "Stage IIIB" = "III&IV", 
+             "Stage IIIC" = "III&IV", 
+             "Stage IV" = "III&IV", 
+             "Stage IVA" = "III&IV", 
+             "Stage IVB" = "III&IV", 
+             "NA" = NA)
+    }), 
+    ajcc_pathologic_t = sapply(ajcc_pathologic_t, function(x){
+      switch(as.character(x), 
+             "T1" = "T1&2", 
+             "T2" = "T1&2", 
+             "T2a" = "T1&2", 
+             "T2b" = "T1&2", 
+             "T3" = "T3&4", 
+             "T3a" = "T3&4", 
+             "T3b" = "T3&4", 
+             "T4" = "T3&4", 
+             "TX" = NA, 
+             "NA" = NA)
+    }), 
+    ajcc_pathologic_n = sapply(ajcc_pathologic_n, function(x){
+      switch(as.character(x), 
+             "N0" = "N-", 
+             "N1" = "N+", 
+             "NX" = NA, 
+             "NA" = NA)
+    }),
+    ajcc_pathologic_m = sapply(ajcc_pathologic_m, function(x){
+      switch(as.character(x), 
+             "M0" = "M-", 
+             "M1" = "M+", 
+             "MX" = NA)
+    }), 
+    race = sapply(race, function(x){
+      switch(as.character(x), 
+             "not reported" = NA, 
+             x)
+    }), 
+    vital_status = sapply(vital_status, function(x){
+      switch(as.character(x), 
+             "Not Reported" = NA, 
+             x)
+    }), 
+    age = ifelse(age > 60, ">60", "<=60")
+  )
+```
+
+```{r}
+# 查看一下整理好的数据
+dplyr::glimpse(sample_info)
+```
+
+# 统计样本的基本信息
+```{r}
+tbl <- compareGroups( ~ ., data = sample_info)
+createTable(tbl)
+```
+
+以上统计显示TCGA-LIHC数据中共包含371个肿瘤样本，其中男性250例，女性121例，且有9.43%的肿瘤患者之前得过肿瘤，但是仅0.54%的患者接受过治疗。
+
+# 统计性别之间的临床指标
+```{r}
+#| message: false
+#| warning: false
+
+tbl <- compareGroups(gender ~ ., data = sample_info)
+createTable(tbl)
+```
+
+以上信息显示TCGA-LIHC中性别之间的样本在种族构成上有显著差别，其中女性肿瘤样本有大约68.6%来源于白人，而男性肿瘤样本约亚洲人和白人占比均在40%以上。
+
+# 筛选样本
+使用compareGroups还可以在统计的同时对样本进行筛选。
+compareGroups提供两种语法对样本进行筛选：
+1. subset: 一次只能对单个变量筛选，影响所有变量  
+2. selec: 一次只能对多个变量筛选，只影响对应变量  
+
+##　subset
+我们首先看一下怎么使用subset筛选样本
+
+```{r}
+# 只统计男性样本在大于60和小于60组间临床信息差异
+tbl <- compareGroups(age ~ ., data = sample_info, subset = gender == "male")
+tbl
+```
+
+## selec
+使用selec同时对对个变量筛选
+
+```{r}
+# gender只统计vital_status是Alive状态的患者，vital_status只统计男性样本
+tbl <- compareGroups(age ~ ., data = sample_info, 
+                    selec = list(gender = vital_status == "Alive", 
+                                 vital_status = gender == "male"))
+tbl
+```
+
+
+# 总结
+comapreGroups提供了三种函数接口，分别是创建统计统计结构，绘制统计表格，以及结果输出。
+在上述实例中我们使用了其中的两个函数，分别是`compareGroups`，这个是这个包的核心函数，用于统计分析的，`createTable`是用来将统计结果以三线表的格式展示出来。compareGroups还提供了一个简化函数descrTable，该函数融合了上述两个函数的功能，比如实例一就可以直接使用descrTable得到。
+
+```{r}
+descrTable( ~ ., data = sample_info)
+```
+
+其余的函数就是为了将生成的结果导出，共可以导出以下格式: 
+
+- csv  
+- html  
+- LaTeX  
+- PDF  
+- markdown  
+- word  
+- excel  
+
+
+也可以通过以下命令提取其中用于导出的函数。
+
+```{r}
+ls("package:compareGroups") %>% grep("^export2", x = ., value = TRUE)
+```
+
+
+
+今天小编为大家介绍了一款临床信息统计的工具，希望能帮助大家在后续统计样本信息时减少烦恼！
+本公众号由上海萤锐科技有限公司运营，上海萤锐科技专注与单细胞、空间转录组、空间代谢组、空间蛋白质组以及宏基因组方向个性化分析和方案设计，欢迎大家交流咨询。后续我们还会更新更多空间转录组、空间蛋白质组、空间代谢组以及单细胞方面的内容，欢迎关注交流。
+
+![](../qrcode_for_gh_67960e695c66_258.jpg){width=30%}
+
+
+# 参考文献
+:::{#refs}
+
+:::
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

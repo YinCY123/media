@@ -1,0 +1,77 @@
+---
+title: "一个分组统计不同细胞占比的小技巧!"
+format: docx
+number-sections: true
+---
+
+统计不同分组或者条件下不同细胞占比是分析单细胞经常要绘制的图，主要用于分析不同条件下细胞构成比例的变化。但是这种图经常缺少统计数据，肉眼看起来非常不方便，不便于比较。今天小编就给大家介绍一个小技巧，能够帮助我们在统计柱状图上加上细胞占比信息。
+
+```{r}
+#| echo: false
+library(magrittr)
+library(SingleCellExperiment)
+library(qs)
+library(ggplot2)
+
+sces <- qread("../../../disk14/qs/20250316/sces_annotated.qs")
+
+df <- sces %>% colData %>% as.data.frame()
+```
+
+大家经常见到的应该是下面这种类型的图，这种图缺少一定的统计信息，对两组之间进行比较时不够直观，尤其当细胞类型很多时，基本上没法进行比较。
+```{r}
+#| echo: false
+df %>% 
+    ggplot(aes(x = timeline, 
+        group = celltype, 
+        by = timeline)) +
+    geom_bar(aes(fill = celltype), position = position_fill(vjust = 0.5))
+```
+
+下面小编就为大家介绍一个小技巧，这个技巧依赖`ggstats` R包。
+
+首先加载需要的R包和示例数据。
+```{r}
+library(magrittr) # 使用管道符
+library(qs) # 读取示例数据
+library(ggplot2)
+library(ggstats) # 今天的主角
+```
+
+读入示例数据
+```{r}
+sces <- qread("../../../disk14/qs/20250316/sces_annotated.qs")
+
+# 提取细胞信息
+df <- sces %>% colData %>% as.data.frame()
+
+# 绘图
+df %>% 
+    ggplot(aes(
+        x = timeline,  # x轴变量
+        group = celltype, # 以什么变量为统计单位
+        by = timeline # 分组变量
+    )) +
+    geom_bar(aes(fill = celltype), position = "fill") +
+    # 使用geom_text显示统计信息
+    # 使用ggstats包中提供的stat_prop统计组间细胞占比
+    geom_text(stat = "prop",  
+    # position_fill(vjust = 0.5)把统计数字放到每个方块的中间
+        position = position_fill(vjust = 0.5), 
+        # 字体大小
+        size = 3, 
+        # 字体颜色
+        color = "grey40") +
+    theme_bw() +
+    scale_x_discrete(name = NULL) +
+    scale_y_continuous(name = "Proportion", 
+        # 把y轴变成百分比格式
+        label = scales::percent
+        )
+```
+
+除此之外ggstatsplot包也提供封装好的函数可以用来做类似的图，有兴趣的同学可以去研究一下。
+
+好了今天小编就为大家介绍到这里啦，有什么问题大家可以在下面留言交流。本公众号由上海萤锐科技有限公司运营，上海萤锐科技主要专注与单细胞测序、空间转录组、空间代谢组、空间蛋白质组以及宏基因组方向个性化分析，欢迎大家交流咨询。后续我们还会更新更多空间转录组、空间蛋白质组、空间代谢组以及单细胞方面的内容，欢迎关注交流。
+
+![](../qrcode_for_gh_67960e695c66_258.jpg){width=30%}
