@@ -1,0 +1,100 @@
+---
+title: "Seq-Scope：高分辨率空间转录组技术"
+author: "序列方舟"
+format: docx
+bibliography: "ref.bib"
+csl: "/home/yincy/github/styles/advanced-science.csl"
+number-sections: true
+---
+
+
+## 引言
+空间转录组（Spatial Transcriptomics, ST）技术正快速发展，其目标是在组织切片中获取全面的基因表达信息，随着时间的发展，越来越多的技术涌现出来。今天小编为大家介绍另外一种基于Illumina patterned flow cell的空间转录组技术：Seq-Scope[@Cho2021]。传统方法如 10x Visum 的分辨率受限（约 100 μm），难以观察单细胞甚至亚细胞结构。**Seq-Scope** 是一种基于 Illumina 流式测序平台的新型空间转录组技术，具有亚微米级分辨率（约 0.6 μm），可实现**空间单细胞**和**亚细胞转录组分析**，显著推动了组织微观结构的转录组探索。
+
+
+## Illumina patterned flow cell
+在介绍Seq-Scope之前，我们先来了解一下什么是patterned flow cell.
+
+简单来说，patterned flow cell就是在一个载玻片上有排列规则的小孔（有点类似10x Visum或者Stereo-seq载玻片），两个小孔圆心之间的距离约0.6μm，这也是Seq-Scope理论上的分辨率极限。每个小孔里面会有一条长度为32-nt的barcode序列，在测序之前通过桥式PCR对其进行扩展，形成barcode cluster。
+
+barcode的结果如下: 
+
+$$5' - [P5] - [32-nt \space HDMI \space barcode] - [poly(dT)] - [P7] - 3'$$ 
+
+
+:::{#fig-01}
+
+![](figures/seqscope-01.png){width=100%}
+
+patterned flow cell。
+
+:::
+
+
+## 🧬 技术原理概览
+
+Seq-Scope 分为两个主要步骤：
+
+### ◾️ 第一次测序（1st-Seq）
+将编码空间条形码的 HDMI-oligo（High-Definition Map coordinate Identifier）在 Illumina flow cell 上进行**固相扩增（solid-phase amplification）**。Illumina **测序仪读取 HDMI 序列及其空间坐标（x,y）**，构建空间条码与位置映射。在这一步会通过小孔中是否有多个颜色来判断是否有多种barcode，从而将这样的小孔去除。所以如果考虑到空的以及含有多个barcode的小孔，实际分辨率会大于0.6 μm。但是由于其barcode的密度较高，捕获率相较于其他技术会高一些。
+
+
+### ◾️ 第二次测序（2nd-Seq）
+这一步是真正的测序步骤，首先在 flow cell 上放置组织切片，组织中的 mRNA 与 HDMI-oligo 的 poly(dT) 区杂交。逆转录生成 cDNA footprint，然后第二链合成，最后PCR 富集建库。TruSeq Read 1 与 Read 2 实现**paired-end 测序**，获得 cDNA + HDMI 的信息。与 1st-Seq 的空间坐标匹配，实现空间转录组重建。
+
+
+:::{#fig-02}
+
+![](figures/seqscope-02.png){width=100%}
+
+Seq-Scope工作流程。
+
+:::
+
+## 🔬 技术优势与性能评估
+### ◾️ 分辨率突破
+- HDMI pixel 间距约为 0.6 μm，比 VISIUM（100 μm）、Slide-Seq（10 μm）等技术高出数十倍。
+- 每 1 mm² flow cell 区域可容纳约 **150 万个 HDMI clusters**。
+
+### ◾️ 转录捕获效率
+- 每 HDMI pixel 可捕获平均：
+  - 肝组织：~6.7 个 UMI
+  - 结肠组织：~23.4 个 UMI
+- 在合并单细胞区域后，平均获得 ~4700 个 UMI，逼近传统单细胞 RNA-seq 的水平。
+
+### ◾️ 亚细胞分辨力
+- 区分未剪接（unspliced）、已剪接（spliced）与线粒体转录本（mtRNA），实现核-胞质空间结构可视化。
+- Malat1、Neat1 等核定位 RNA 富集于 unspliced 区域；mtRNA 显著富集于胞质区。
+
+
+## 🧠 生物学应用实例
+### 🧬 肝组织分析
+- 明确识别肝细胞门周（periportal）与中央静脉（pericentral）区的分区转录特征。
+- 通过细胞图像分割与空间映射，检测空间定位明确的肝细胞类型和状态。
+- 发现疾病模型中损伤反应细胞（如 HPC、激活型 HSC、炎性巨噬细胞）围绕坏死肝细胞分布，构建病理微结构图谱。
+
+:::{#fig-03}
+
+![](figures/seqscope-03.png){width=100%}
+
+Seq-Scope在肝脏中的应用。
+
+:::
+
+
+## 总结
+
+今天小编为大家哦介绍了一个新的空间转录组技术，其使用的核心技术与Open-ST相同。作为后来者Open-ST将空间转录组技术推到了三维空间，由于两者核心技术相似，了解其中一种技术能够为我们理解另外一种提供帮助。
+**本公众号专注与单细胞、空间转录组、空间代谢组、空间蛋白质组以及宏基因组方向个性化分析和方案设计，欢迎大家交流咨询。后续我们还会更新更多空间转录组、空间蛋白质组、空代间谢组以及单细胞方面的内容，欢迎关注交流**。
+
+![](../StringArk.jpg){width=30%}
+
+
+{{< pagebreak >}}
+
+## 参考文献{.unnumbered}
+
+:::{#refs}
+
+:::
+
